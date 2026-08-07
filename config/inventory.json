@@ -1,0 +1,103 @@
+{
+  "venue": {
+    "name": "402 Courts & Spaces",
+    "description": "Demo venue — edit config/inventory.json to describe your real rentable inventory.",
+    "timezone": "America/New_York",
+    "address": "402 Payment Ave, New York, NY 10001",
+    "phone": "+1 (555) 402-0402"
+  },
+  "hours": {
+    "monday": { "open": "06:00", "close": "23:00" },
+    "tuesday": { "open": "06:00", "close": "23:00" },
+    "wednesday": { "open": "06:00", "close": "23:00" },
+    "thursday": { "open": "06:00", "close": "23:00" },
+    "friday": { "open": "06:00", "close": "23:00" },
+    "saturday": { "open": "07:00", "close": "22:00" },
+    "sunday": { "open": "07:00", "close": "21:00" }
+  },
+  "bookingWindowDays": 14,
+  "blockMinutes": 30,
+  "items": [
+    {
+      "id": "court-1",
+      "name": "Tennis Court 1",
+      "category": "court",
+      "description": "Outdoor hard court with floodlights. Nets and line judges' chairs included.",
+      "location": "North lot",
+      "ratePerBlock": "$0.02",
+      "peakRatePerBlock": "$0.03",
+      "peakHours": { "from": "17:00", "to": "21:00" },
+      "minBlocks": 2,
+      "maxBlocks": 6,
+      "accessType": "gate-code",
+      "terms": "Court time starts and ends on the block. Leave the surface swept. Floodlights cut out at closing."
+    },
+    {
+      "id": "court-2",
+      "name": "Tennis Court 2",
+      "category": "court",
+      "description": "Outdoor hard court, no floodlights — daylight bookings only in winter.",
+      "location": "North lot",
+      "ratePerBlock": "$0.02",
+      "minBlocks": 2,
+      "maxBlocks": 6,
+      "accessType": "gate-code",
+      "terms": "Court time starts and ends on the block. Leave the surface swept."
+    },
+    {
+      "id": "studio-a",
+      "name": "Rehearsal Studio A",
+      "category": "room",
+      "description": "40 m² sprung floor, mirrored wall, PA and upright piano.",
+      "location": "Building 2, first floor",
+      "ratePerBlock": "$0.025",
+      "minBlocks": 2,
+      "maxBlocks": 12,
+      "accessType": "door-code",
+      "terms": "Sound curfew after 21:00. Reset the room: chairs stacked, floor swept, PA powered down."
+    },
+    {
+      "id": "meeting-1",
+      "name": "Meeting Room 1",
+      "category": "room",
+      "description": "Seats 8. 55\" display with HDMI and USB-C, whiteboard, kettle.",
+      "location": "Building 1, second floor",
+      "ratePerBlock": "$0.015",
+      "minBlocks": 1,
+      "maxBlocks": 16,
+      "accessType": "door-code",
+      "terms": "Wipe the whiteboard and take rubbish with you. Overruns are billed as new blocks."
+    },
+    {
+      "id": "espresso-cart",
+      "name": "Mobile Espresso Cart",
+      "category": "equipment",
+      "description": "Two-group machine, grinder, 20 kg of beans, wheels. Requires a 13A socket.",
+      "location": "Equipment store",
+      "ratePerBlock": "$0.04",
+      "minBlocks": 4,
+      "maxBlocks": 24,
+      "accessType": "locker-code",
+      "terms": "Return backflushed and empty. Damage or missing parts are charged at replacement cost."
+    },
+    {
+      "id": "pa-rig",
+      "name": "Portable PA Rig",
+      "category": "equipment",
+      "description": "2×12\" active tops, 15\" sub, 8-channel desk, stands and cabling.",
+      "location": "Equipment store",
+      "ratePerBlock": "$0.03",
+      "minBlocks": 4,
+      "maxBlocks": 24,
+      "accessType": "locker-code",
+      "terms": "Return coiled and in the flight case. Damage or missing parts are charged at replacement cost."
+    }
+  ],
+  "quoteValidMinutes": 15,
+  "policy": {
+    "reservePrice": "$0.02",
+    "quotePrice": "$0.001",
+    "description": "A quote is a signed, time-limited price for a specific item and window. Reserving costs $0.02 and issues an access code valid for the booked window. Reservations are non-refundable inside 1 hour of the start; earlier cancellations release the block free of charge.",
+    "freeCancellationHours": 1
+  }
+}

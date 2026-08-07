@@ -1,0 +1,953 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "x402-rentals",
+    "version": "0.1.0",
+    "description": "Time-slot rental server for courts, rooms, and equipment — reserve and pay per block with x402. Browsing the inventory is free; a signed quote costs $0.001 and a reservation costs $0.02, returning the access code, window, pricing, terms and an ICS invite in the 200 body. Paid routes respond 402 with dual-rail PaymentRequirements (USDC on Base and on Solana) until an X-PAYMENT header carrying a signed payment is supplied.",
+    "contact": {
+      "name": "nirholas",
+      "email": "nichxbt@gmail.com"
+    },
+    "license": {
+      "name": "Apache-2.0",
+      "identifier": "Apache-2.0"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4024"
+    }
+  ],
+  "paths": {
+    "/inventory": {
+      "get": {
+        "operationId": "getInventory",
+        "summary": "Rentable items plus their calendars (free)",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inventory",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inventory"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/quote": {
+      "get": {
+        "operationId": "getQuote",
+        "summary": "Signed, time-limited price for an item and window ($0.001 via x402)",
+        "description": "Prices a specific window per block, flagging peak blocks. Echo the whole response (signature included) into POST /reserve to pin the price.",
+        "parameters": [
+          {
+            "name": "item",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "court-1"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": true,
+            "description": "HH:MM, on the block grid",
+            "schema": {
+              "type": "string",
+              "example": "18:00"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "HH:MM. Supply this or `blocks`.",
+            "schema": {
+              "type": "string",
+              "example": "19:00"
+            }
+          },
+          {
+            "name": "blocks",
+            "in": "query",
+            "description": "Number of blocks. Supply this or `end`.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "X-PAYMENT",
+            "in": "header",
+            "required": false,
+            "description": "Base64-encoded signed x402 payment for one of the rails in accepts[]. Omit to receive the 402 challenge.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quote artifact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
+            },
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt: { success, transaction, network, payer }. Names the rail the payment settled on.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/reserve": {
+      "post": {
+        "operationId": "reserve",
+        "summary": "Reserve a time block ($0.02 via x402)",
+        "description": "Claims the window and returns the access code, booked window, pricing, terms, cancel token and ICS invite in the 200 body. Settlement only runs when the reservation succeeds.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReserveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rental artifact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Rental"
+                }
+              }
+            },
+            "headers": {
+              "X-PAYMENT-RESPONSE": {
+                "description": "Base64 JSON settlement receipt: { success, transaction, network, payer }. Names the rail the payment settled on.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-PAYMENT",
+            "in": "header",
+            "required": false,
+            "description": "Base64-encoded signed x402 payment for one of the rails in accepts[]. Omit to receive the 402 challenge.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/cancel/{id}": {
+      "post": {
+        "operationId": "cancelRental",
+        "summary": "Cancel a reservation (free, auth by cancelToken)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cancelToken"
+                ],
+                "properties": {
+                  "cancelToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancellation record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cancellation"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          }
+        }
+      }
+    },
+    "/rentals/{id}": {
+      "get": {
+        "operationId": "getRental",
+        "summary": "Look up a rental incl. its access code (free, auth by cancelToken)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cancelToken",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rental record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/info": {
+      "get": {
+        "operationId": "info",
+        "summary": "Venue profile, hours, policy, prices, payment rails (free)",
+        "responses": {
+          "200": {
+            "description": "Info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness (free)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/x402": {
+      "get": {
+        "operationId": "manifest",
+        "summary": "x402 discovery manifest (free)",
+        "responses": {
+          "200": {
+            "description": "Manifest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid input",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Auth failed (bad cancelToken or bad quote signature)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Unknown item or rental",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Window taken / outside hours / below minimum / quote expired / price changed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "PaymentRequired": {
+        "description": "Payment required. `accepts` lists both rails (USDC on Base and USDC on Solana) — sign one and retry with X-PAYMENT.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/PaymentRequirements"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "WINDOW_TAKEN"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "example": "court"
+          },
+          "description": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "ratePerBlock": {
+            "type": "string",
+            "example": "$0.02"
+          },
+          "peakRatePerBlock": {
+            "type": "string"
+          },
+          "peakHours": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          },
+          "minBlocks": {
+            "type": "integer"
+          },
+          "maxBlocks": {
+            "type": "integer"
+          },
+          "accessType": {
+            "type": "string",
+            "enum": [
+              "gate-code",
+              "door-code",
+              "locker-code"
+            ]
+          },
+          "terms": {
+            "type": "string"
+          },
+          "calendar": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarDay"
+            }
+          }
+        }
+      },
+      "CalendarDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "open": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "close": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "busy": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "start": {
+                  "type": "string"
+                },
+                "end": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "freeBlockStarts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Inventory": {
+        "type": "object",
+        "properties": {
+          "venue": {
+            "type": "object"
+          },
+          "blockMinutes": {
+            "type": "integer"
+          },
+          "bookingWindowDays": {
+            "type": "integer"
+          },
+          "policy": {
+            "type": "object"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Item"
+            }
+          }
+        }
+      },
+      "QuoteLine": {
+        "type": "object",
+        "properties": {
+          "block": {
+            "type": "string",
+            "example": "18:00–18:30"
+          },
+          "rate": {
+            "type": "string",
+            "example": "$0.03"
+          },
+          "peak": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Quote": {
+        "type": "object",
+        "description": "The purchased artifact of GET /quote. Echo it whole (signature included) into POST /reserve to pin the price.",
+        "properties": {
+          "quoteId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "blocks": {
+            "type": "integer"
+          },
+          "blockMinutes": {
+            "type": "integer"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuoteLine"
+            }
+          },
+          "total": {
+            "type": "string",
+            "example": "$0.06"
+          },
+          "totalAtomicUSDC": {
+            "type": "string",
+            "example": "60000"
+          },
+          "currency": {
+            "type": "string",
+            "example": "USDC"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "type": "string"
+          },
+          "reservePrice": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signature": {
+            "type": "string"
+          }
+        }
+      },
+      "ReserveRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "description": "Supply `quote` (a whole signed GET /quote response) to pin the price, or `item`+`date`+`start`+`end|blocks` to price it now.",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quote": {
+            "$ref": "#/components/schemas/Quote"
+          },
+          "item": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "blocks": {
+            "type": "integer"
+          }
+        }
+      },
+      "Rental": {
+        "type": "object",
+        "description": "The purchased artifact, returned in the 200 body of POST /reserve.",
+        "properties": {
+          "rentalId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed"
+            ]
+          },
+          "venue": {
+            "type": "string"
+          },
+          "item": {
+            "type": "object"
+          },
+          "accessCode": {
+            "type": "string",
+            "description": "Gate/door/locker code, valid for the booked window only"
+          },
+          "accessNote": {
+            "type": "string"
+          },
+          "window": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date"
+              },
+              "start": {
+                "type": "string"
+              },
+              "end": {
+                "type": "string"
+              },
+              "blocks": {
+                "type": "integer"
+              },
+              "blockMinutes": {
+                "type": "integer"
+              },
+              "startsAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endsAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "pricing": {
+            "type": "object"
+          },
+          "holder": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "object"
+          },
+          "cancelToken": {
+            "type": "string"
+          },
+          "cancelEndpoint": {
+            "type": "string"
+          },
+          "quoteId": {
+            "type": "string"
+          },
+          "ics": {
+            "type": "string",
+            "description": "base64-encoded RFC 5545 calendar invite"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "signature": {
+            "type": "string"
+          }
+        }
+      },
+      "Cancellation": {
+        "type": "object",
+        "properties": {
+          "rentalId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "cancelled"
+            ]
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "blockReleased": {
+            "type": "boolean"
+          },
+          "refundable": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "accessCodeRevoked": {
+            "type": "boolean"
+          },
+          "item": {
+            "type": "object"
+          },
+          "window": {
+            "type": "object"
+          },
+          "signature": {
+            "type": "string"
+          }
+        }
+      },
+      "PaymentRequirements": {
+        "type": "object",
+        "description": "x402 payment requirements returned with HTTP 402. `accepts` always carries BOTH rails — USDC on Base (EVM) and USDC on Solana. Pick one, sign it, retry with the X-PAYMENT header.",
+        "required": [
+          "x402Version",
+          "accepts"
+        ],
+        "properties": {
+          "x402Version": {
+            "type": "integer",
+            "example": 1
+          },
+          "error": {
+            "type": "string",
+            "example": "X-PAYMENT header is required"
+          },
+          "accepts": {
+            "type": "array",
+            "description": "One entry per accepted payment rail.",
+            "items": {
+              "$ref": "#/components/schemas/PaymentRail"
+            }
+          }
+        },
+        "example": {
+          "x402Version": 1,
+          "error": "X-PAYMENT header is required",
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "base-sepolia",
+              "maxAmountRequired": "20000",
+              "resource": "https://YOUR-DEPLOYMENT.example.com/reserve",
+              "description": "Reserve a time block. Returns rentalId, the access code for the door/gate/locker, the booked window, pricing, terms, a cancel token and a base64 ICS calendar invite",
+              "mimeType": "application/json",
+              "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+              "maxTimeoutSeconds": 300,
+              "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+              "extra": {
+                "name": "USDC",
+                "version": "2"
+              }
+            },
+            {
+              "scheme": "exact",
+              "network": "solana",
+              "maxAmountRequired": "20000",
+              "resource": "https://YOUR-DEPLOYMENT.example.com/reserve",
+              "description": "Reserve a time block. Returns rentalId, the access code for the door/gate/locker, the booked window, pricing, terms, a cancel token and a base64 ICS calendar invite",
+              "mimeType": "application/json",
+              "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+              "maxTimeoutSeconds": 300,
+              "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+              "extra": {
+                "rpcUrl": "https://api.mainnet-beta.solana.com"
+              }
+            }
+          ]
+        }
+      },
+      "PaymentRail": {
+        "type": "object",
+        "description": "A single accepted payment rail.",
+        "required": [
+          "scheme",
+          "network",
+          "maxAmountRequired",
+          "resource",
+          "payTo",
+          "asset"
+        ],
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "enum": [
+              "exact"
+            ]
+          },
+          "network": {
+            "type": "string",
+            "enum": [
+              "base-sepolia",
+              "base",
+              "solana",
+              "solana-devnet"
+            ],
+            "description": "`base*` = EVM rail (EIP-3009), `solana*` = SVM rail (SPL transferChecked)."
+          },
+          "maxAmountRequired": {
+            "type": "string",
+            "description": "Atomic USDC units (6 decimals)."
+          },
+          "resource": {
+            "type": "string",
+            "format": "uri"
+          },
+          "description": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "payTo": {
+            "type": "string",
+            "description": "Merchant receive address on that network."
+          },
+          "maxTimeoutSeconds": {
+            "type": "integer"
+          },
+          "asset": {
+            "type": "string",
+            "description": "USDC contract address / SPL mint."
+          },
+          "outputSchema": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "EVM: EIP-712 domain. Solana: `rpcUrl` for building the transfer."
+          }
+        }
+      }
+    }
+  }
+}

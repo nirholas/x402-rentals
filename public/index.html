@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>402 Courts &amp; Spaces — Book a block</title>
+<script>
+  // Drop-in checkout modal (proprietary npm package, loaded from CDN — never vendored).
+  // `checkout-origin` points the Solana rail at THIS server's /api/x402-checkout,
+  // which builds the SPL transfer Phantom signs. The Base rail needs no server.
+  const x402Modal = document.createElement("script");
+  x402Modal.type = "module";
+  x402Modal.src = "https://unpkg.com/@three-ws/x402-payment-modal";
+  x402Modal.dataset.x402CheckoutOrigin = location.origin;
+  x402Modal.dataset.x402BrandName = "402 Courts & Spaces";
+  x402Modal.dataset.x402FooterNote = "x402 · USDC on Base or Solana";
+  document.head.appendChild(x402Modal);
+</script>
+<style>
+  :root {
+    --accent: #0052ff;
+    --bg: #ffffff; --fg: #0a0b0d; --muted: #5b616e;
+    --card: #f6f7f9; --line: #e5e7eb; --ok: #098551; --peak: #b45309;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0a0b0d; --fg: #f2f4f7; --muted: #9aa0ab; --card: #16181d; --line: #262931; --ok: #27c48a; --peak: #f0b429; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 32px 20px 80px; }
+  header h1 { font-size: 1.9rem; letter-spacing: -0.02em; }
+  header p.tag { color: var(--muted); margin-top: 4px; }
+  .badge {
+    display: inline-block; font-size: .75rem; font-weight: 600; color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px; margin-bottom: 12px;
+  }
+  section { margin-top: 32px; }
+  h2 { font-size: 1.1rem; margin-bottom: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  label { font-size: .8rem; color: var(--muted); display: block; margin-bottom: 4px; }
+  input, select {
+    background: var(--bg); color: var(--fg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 10px; font-size: .95rem; min-width: 0;
+  }
+  .field { flex: 1 1 140px; }
+  .field input, .field select { width: 100%; }
+  button.pay {
+    background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+    padding: 12px 20px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  button.pay:hover { filter: brightness(1.1); }
+  button.pay:disabled { opacity: .5; cursor: not-allowed; }
+  button.ghost {
+    background: transparent; color: var(--accent); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer;
+  }
+  .price { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 8px; }
+  .blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; margin-top: 12px; max-height: 220px; overflow-y: auto; }
+  .blk {
+    border: 1px solid var(--line); border-radius: 7px; padding: 6px 2px; text-align: center;
+    cursor: pointer; font-size: .84rem; background: var(--bg);
+  }
+  .blk:hover, .blk.sel { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .blk.busy { opacity: .35; cursor: not-allowed; text-decoration: line-through; }
+  pre {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px; overflow-x: auto; font-size: .8rem; margin-top: 12px;
+  }
+  table.q { width: 100%; border-collapse: collapse; font-size: .87rem; margin-top: 8px; }
+  table.q td { padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  table.q td.r { text-align: right; }
+  .peakflag { color: var(--peak); font-weight: 600; font-size: .78rem; }
+  .receipt { border-left: 4px solid var(--ok); }
+  .code { font-size: 2.6rem; font-weight: 800; letter-spacing: .12em; color: var(--accent); line-height: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .hint { color: var(--muted); font-size: .85rem; margin-top: 10px; }
+  .hidden { display: none; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">x402 demo — pay in USDC on Base <em>or</em> Solana</span>
+    <h1 id="venueName">Book a block</h1>
+    <p class="tag">Browsing is free. $0.001 buys a signed price for the exact window you want; $0.02 reserves it and returns the gate code. Connect Phantom (Solana) or MetaMask (Base); the modal reads the 402 and picks the rail. Agents use the <a href="/.well-known/x402">x402 manifest</a>; humans use this page.</p>
+  </header>
+
+  <section>
+    <h2>1 · Pick a window <span style="color:var(--muted);font-weight:400">(free — the calendar costs nothing)</span></h2>
+    <div class="card">
+      <div class="row">
+        <div class="field"><label for="item">Item</label><select id="item"><option>loading…</option></select></div>
+        <div class="field"><label for="date">Date</label><select id="date"></select></div>
+        <div class="field"><label for="blockCount">Length</label><select id="blockCount"></select></div>
+      </div>
+      <div id="itemMeta" class="hint" style="margin-top:0"></div>
+      <div id="blockGrid" class="blocks"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Price it <span style="color:var(--muted);font-weight:400">($0.001 via x402)</span></h2>
+    <div class="card">
+      <button class="pay" id="quoteBtn" disabled
+        data-x402-method="GET" data-x402-merchant="402 Courts &amp; Spaces" data-x402-action="Quote">
+        Pay $0.001 &amp; get a signed quote
+      </button>
+      <div class="price">A quote is signed and valid for 15 minutes — reserving with it pins the price</div>
+      <div id="quoteBox" class="hidden"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Reserve it <span style="color:var(--muted);font-weight:400">($0.02 via x402)</span></h2>
+    <div class="card">
+      <div class="row">
+        <div class="field"><label for="name">Your name</label><input id="name" placeholder="Ada Lovelace"></div>
+      </div>
+      <button class="pay" id="reserveBtn" disabled
+        data-x402-endpoint="/reserve" data-x402-method="POST"
+        data-x402-merchant="402 Courts &amp; Spaces" data-x402-action="Reserve">
+        Pay $0.02 &amp; reserve
+      </button>
+      <div class="price" id="policyLine">Get a quote first</div>
+    </div>
+  </section>
+
+  <section id="result" class="hidden">
+    <h2>Your reservation</h2>
+    <div class="card receipt">
+      <div class="hint" style="margin:0" id="codeLabel">Access code</div>
+      <div class="code" id="accessCode">—</div>
+      <div id="rentalSummary" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="ghost" id="icsBtn">Download calendar invite (.ics)</button>
+        <button class="ghost" id="cancelBtn">Cancel (releases the block)</button>
+      </div>
+      <pre id="artifact"></pre>
+    </div>
+  </section>
+
+  <footer class="hint" style="margin-top:40px">
+    Powered by <a href="https://x402.org">x402</a> — dual-rail USDC (Base + Solana). Payment UI by
+    <code>@three-ws/x402-payment-modal</code> (SIWX wallet re-entry, per-site spending caps).
+    Source: <a href="https://github.com/nirholas/x402-rentals">github.com/nirholas/x402-rentals</a>
+  </footer>
+</div>
+
+<script>
+  let inventory = null;
+  let selectedStart = null;   // "HH:MM"
+  let quote = null;           // the signed GET /quote artifact
+  let rental = null;
+  let lastPayment = null;     // { network, transaction, payer } from the settled payment
+
+  const $ = (id) => document.getElementById(id);
+  const item = () => inventory?.items.find((i) => i.id === $("item").value);
+  const day = () => item()?.calendar.find((c) => c.date === $("date").value);
+
+  // The free /inventory route drives the whole picker — no payment to browse.
+  fetch("/inventory?days=7").then((r) => r.json()).then((inv) => {
+    inventory = inv;
+    $("venueName").textContent = inv.venue.name;
+    $("policyLine").textContent = inv.policy.description;
+    $("item").innerHTML = inv.items
+      .map((i) => `<option value="${i.id}">${i.name} · ${i.category}</option>`).join("");
+    $("date").innerHTML = inv.items[0].calendar
+      .map((c) => `<option value="${c.date}">${c.date}</option>`).join("");
+    syncItem();
+  });
+
+  function lengthSelect() { return $("blockCount"); }
+
+  function syncItem() {
+    const it = item();
+    if (!it) return;
+    const opts = [];
+    for (let n = it.minBlocks; n <= it.maxBlocks; n++) {
+      opts.push(`<option value="${n}">${n} × ${inventory.blockMinutes}min (${(n * inventory.blockMinutes) / 60}h)</option>`);
+    }
+    lengthSelect().innerHTML = opts.join("");
+    $("itemMeta").innerHTML =
+      `${it.description}<br>${it.location} · ${it.ratePerBlock}/block` +
+      (it.peakRatePerBlock ? ` · <span class="peakflag">peak ${it.peakRatePerBlock} (${it.peakHours.from}–${it.peakHours.to})</span>` : "") +
+      ` · min ${it.minBlocks}, max ${it.maxBlocks} blocks · ${it.accessType}`;
+    renderBlocks();
+  }
+
+  function renderBlocks() {
+    const it = item(), d = day();
+    const grid = $("blockGrid");
+    grid.innerHTML = "";
+    selectedStart = null;
+    quote = null;
+    $("quoteBox").classList.add("hidden");
+    $("quoteBtn").disabled = true;
+    $("reserveBtn").disabled = true;
+    if (!it || !d || !d.open) { grid.innerHTML = "<em>Closed that day.</em>"; return; }
+    const free = new Set(d.freeBlockStarts);
+    const open = d.open, close = d.close;
+    const toM = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+    const fromM = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    for (let t = toM(open); t + inventory.blockMinutes <= toM(close); t += inventory.blockMinutes) {
+      const label = fromM(t);
+      const el = document.createElement("div");
+      el.className = "blk" + (free.has(label) ? "" : " busy");
+      el.textContent = label;
+      if (free.has(label)) {
+        el.onclick = () => {
+          selectedStart = label;
+          document.querySelectorAll(".blk").forEach((x) => x.classList.remove("sel"));
+          el.classList.add("sel");
+          $("quoteBtn").disabled = false;
+          $("quoteBtn").setAttribute(
+            "data-x402-endpoint",
+            `/quote?item=${encodeURIComponent(it.id)}&date=${d.date}&start=${label}&blocks=${lengthSelect().value}`,
+          );
+        };
+      }
+      grid.appendChild(el);
+    }
+  }
+
+  document.addEventListener("change", (e) => {
+    if (e.target.id === "item") { syncDates(); syncItem(); }  // dates first: syncItem reads day()
+    if (e.target.id === "date" || e.target.id === "blockCount") renderBlocks();
+  });
+
+  function syncDates() {
+    const it = item();
+    $("date").innerHTML = it.calendar.map((c) => `<option value="${c.date}">${c.date}</option>`).join("");
+  }
+
+  // `x402:result` bubbles from the clicked button with detail = PayResult:
+  // { ok, result, payment: { network, transaction, payer }, response }.
+  addEventListener("x402:result", (e) => {
+    const artifact = e.detail?.result ?? e.detail;
+    if (!artifact) return;
+    lastPayment = e.detail?.payment ?? null;
+    if (artifact.quoteId && !artifact.rentalId) renderQuote(artifact);
+    else if (artifact.rentalId) renderRental(artifact);
+  });
+
+  addEventListener("x402:error", (e) => {
+    if (e.detail?.error?.code === "cancelled") return;
+    console.error("x402 payment failed:", e.detail?.error);
+  });
+
+  function renderQuote(q) {
+    quote = q;
+    const box = $("quoteBox");
+    box.classList.remove("hidden");
+    box.innerHTML =
+      `<table class="q">` +
+      q.lines.map((l) => `<tr><td>${l.block}${l.peak ? ' <span class="peakflag">peak</span>' : ""}</td><td class="r">${l.rate}</td></tr>`).join("") +
+      `<tr><td><strong>${q.blocks} blocks · ${q.start}–${q.end}</strong></td><td class="r"><strong>${q.total}</strong></td></tr>` +
+      `</table>` +
+      `<div class="hint">Quote ${q.quoteId} · expires ${new Date(q.expiresAt).toLocaleTimeString()} · ${q.available ? "available" : "NOT available — " + q.unavailableReason}</div>`;
+    $("reserveBtn").disabled = !q.available;
+    // Echo the whole signed quote so the price cannot drift before reserving.
+    $("reserveBtn").setAttribute("data-x402-body", JSON.stringify({
+      name: $("name").value || "Walk-in (demo)",
+      quote: q,
+    }));
+  }
+
+  $("name").addEventListener("input", () => {
+    if (quote) $("reserveBtn").setAttribute("data-x402-body", JSON.stringify({
+      name: $("name").value || "Walk-in (demo)", quote,
+    }));
+  });
+
+  function renderRental(r) {
+    rental = r;
+    $("result").classList.remove("hidden");
+    $("codeLabel").textContent = `${r.item.accessType} — ${r.item.location}`;
+    $("accessCode").textContent = r.accessCode;
+    $("rentalSummary").innerHTML =
+      `<strong>${r.item.name}</strong> · ${r.window.date} ${r.window.start}–${r.window.end} (${r.window.blocks} blocks)` +
+      `<div class="hint">${r.pricing.total} for the time · reservation ${r.rentalId}</div>` +
+      `<div class="hint">${r.terms.item}</div>` +
+      (lastPayment
+        ? `<div class="hint">Paid on <strong>${lastPayment.network}</strong>` +
+          (lastPayment.transaction ? ` · tx <code>${String(lastPayment.transaction).slice(0, 18)}…</code>` : "") + `</div>`
+        : "");
+    $("artifact").textContent = JSON.stringify({ ...r, ics: (r.ics ?? "").slice(0, 40) + "…" }, null, 2);
+    $("result").scrollIntoView({ behavior: "smooth" });
+    fetch("/inventory?days=7").then((x) => x.json()).then((inv) => { inventory = inv; renderBlocks(); });
+  }
+
+  $("icsBtn").onclick = () => {
+    if (!rental?.ics) return;
+    const a = document.createElement("a");
+    a.href = "data:text/calendar;base64," + rental.ics;
+    a.download = rental.rentalId + ".ics";
+    a.click();
+  };
+
+  $("cancelBtn").onclick = async () => {
+    if (!rental) return;
+    const res = await fetch(`/cancel/${rental.rentalId}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cancelToken: rental.cancelToken }),
+    });
+    const rec = await res.json();
+    $("accessCode").textContent = "revoked";
+    $("codeLabel").textContent = rec.refundable ? "Cancelled — fee refundable" : "Cancelled — fee forfeited";
+    $("artifact").textContent = JSON.stringify(rec, null, 2);
+    fetch("/inventory?days=7").then((x) => x.json()).then((inv) => { inventory = inv; renderBlocks(); });
+  };
+</script>
+</body>
+</html>

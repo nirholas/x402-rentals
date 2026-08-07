@@ -1,0 +1,252 @@
+{
+  "x402Version": 1,
+  "name": "x402-rentals",
+  "description": "Time-slot rental server for courts, rooms, and equipment — reserve and pay per block with x402",
+  "resources": [
+    {
+      "resource": "GET /quote",
+      "description": "Signed, time-limited price for one item and window. Params: ?item=ID&date=YYYY-MM-DD&start=HH:MM and either &end=HH:MM or &blocks=N. Returns per-block lines with peak flags, the total in USDC, availability, terms, and an HMAC signature you echo back to POST /reserve to pin the price.",
+      "price": "$0.001",
+      "network": "base-sepolia",
+      "asset": "USDC",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "quoteId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "itemName": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "blocks": {
+            "type": "number"
+          },
+          "blockMinutes": {
+            "type": "number"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "block": {
+                  "type": "string"
+                },
+                "rate": {
+                  "type": "string"
+                },
+                "peak": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "total": {
+            "type": "string"
+          },
+          "totalAtomicUSDC": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "unavailableReason": {
+            "type": "string"
+          },
+          "reservePrice": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "signature": {
+            "type": "string",
+            "description": "HMAC-SHA256 over canonical JSON"
+          }
+        }
+      },
+      "networks": [
+        "base-sepolia",
+        "solana"
+      ],
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "base-sepolia",
+          "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          "assetSymbol": "USDC",
+          "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+          "maxAmountRequired": "1000",
+          "mimeType": "application/json"
+        },
+        {
+          "scheme": "exact",
+          "network": "solana",
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "assetSymbol": "USDC",
+          "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+          "maxAmountRequired": "1000",
+          "mimeType": "application/json"
+        }
+      ]
+    },
+    {
+      "resource": "POST /reserve",
+      "description": "Reserve a time block. Body: {name, quote} echoing a signed GET /quote (pins the price), or {name, item, date, start, end|blocks}. Returns rentalId, the access code for the gate/door/locker, the booked window, the pricing breakdown, the terms, a cancel token and a base64 ICS calendar invite — all in the 200 response.",
+      "price": "$0.02",
+      "network": "base-sepolia",
+      "asset": "USDC",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "rentalId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed"
+            ]
+          },
+          "venue": {
+            "type": "string"
+          },
+          "item": {
+            "type": "object"
+          },
+          "accessCode": {
+            "type": "string",
+            "description": "gate/door/locker code, valid for the booked window"
+          },
+          "accessNote": {
+            "type": "string"
+          },
+          "window": {
+            "type": "object"
+          },
+          "pricing": {
+            "type": "object"
+          },
+          "holder": {
+            "type": "string"
+          },
+          "terms": {
+            "type": "object"
+          },
+          "cancelToken": {
+            "type": "string"
+          },
+          "cancelEndpoint": {
+            "type": "string"
+          },
+          "quoteId": {
+            "type": "string"
+          },
+          "ics": {
+            "type": "string",
+            "description": "base64-encoded RFC 5545 calendar invite"
+          },
+          "signature": {
+            "type": "string",
+            "description": "HMAC-SHA256 over canonical JSON"
+          }
+        }
+      },
+      "networks": [
+        "base-sepolia",
+        "solana"
+      ],
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "base-sepolia",
+          "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+          "assetSymbol": "USDC",
+          "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+          "maxAmountRequired": "20000",
+          "mimeType": "application/json"
+        },
+        {
+          "scheme": "exact",
+          "network": "solana",
+          "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "assetSymbol": "USDC",
+          "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+          "maxAmountRequired": "20000",
+          "mimeType": "application/json"
+        }
+      ]
+    }
+  ],
+  "freeResources": [
+    {
+      "resource": "GET /inventory",
+      "description": "Rentable items plus their calendars: rates, peak hours, min/max blocks, access type, terms, busy windows and free block starts. Free by design — browsing is free, pricing and reserving are paid. Filter with ?item=ID&date=YYYY-MM-DD&days=N."
+    },
+    {
+      "resource": "POST /cancel/:id",
+      "description": "Cancel a reservation (auth: cancelToken from /reserve). Releases the block, revokes the access code, returns a signed cancellation record."
+    },
+    {
+      "resource": "GET /rentals/:id",
+      "description": "Look up a rental including its access code (auth: cancelToken)"
+    },
+    {
+      "resource": "GET /info",
+      "description": "Venue profile, hours, block size, quote validity, policy, prices, payment rails"
+    },
+    {
+      "resource": "GET /health",
+      "description": "Liveness check"
+    }
+  ],
+  "payment": {
+    "protocol": "x402",
+    "summary": "Pay in USDC on Base or Solana — your client picks the rail.",
+    "note": "Facilitators are per-rail — no public facilitator settles both chains.",
+    "rails": [
+      {
+        "rail": "evm",
+        "network": "base-sepolia",
+        "mainnet": "base",
+        "asset": "USDC",
+        "payTo": "0x40252CFDF8B20Ed757D61ff157719F33Ec332402",
+        "facilitator": "https://x402.org/facilitator",
+        "signing": "EIP-3009 transferWithAuthorization"
+      },
+      {
+        "rail": "solana",
+        "network": "solana",
+        "devnet": "solana-devnet",
+        "asset": "USDC",
+        "payTo": "WwwuGbqHrwF5RG89KhUbmRWEvjnRH9k5kVM5p7T3WwW",
+        "facilitator": "https://facilitator.payai.network",
+        "signing": "SPL transferChecked"
+      }
+    ]
+  }
+}
