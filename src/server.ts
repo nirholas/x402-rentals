@@ -11,6 +11,7 @@ import {
   railSummary,
   type RouteMap,
 } from "./payments.js";
+import { ROUTE_SCHEMAS } from "./schemas.js";
 import {
   RentalError,
   assertConfigLoaded,
@@ -38,42 +39,14 @@ const routes: RouteMap = {
     price: PRICES.quote,
     description:
       "Signed, time-limited price for one item and window: per-block lines, peak flags, total in USDC, availability and terms",
-    outputSchema: {
-      type: "object",
-      properties: {
-        quoteId: { type: "string" },
-        itemId: { type: "string" },
-        date: { type: "string" },
-        start: { type: "string" },
-        end: { type: "string" },
-        blocks: { type: "integer" },
-        lines: { type: "array", items: { type: "object" } },
-        total: { type: "string" },
-        totalAtomicUSDC: { type: "string" },
-        available: { type: "boolean" },
-        expiresAt: { type: "string" },
-        signature: { type: "string" },
-      },
-    },
+    // Request/response schemas mirror openapi.json — see src/schemas.ts.
+    ...ROUTE_SCHEMAS["GET /quote"],
   },
   "POST /reserve": {
     price: PRICES.reserve,
     description:
       "Reserve a time block. Returns rentalId, the access code for the door/gate/locker, the booked window, pricing, terms, a cancel token and a base64 ICS calendar invite",
-    outputSchema: {
-      type: "object",
-      properties: {
-        rentalId: { type: "string" },
-        item: { type: "object" },
-        accessCode: { type: "string" },
-        window: { type: "object" },
-        pricing: { type: "object" },
-        terms: { type: "object" },
-        cancelToken: { type: "string" },
-        ics: { type: "string", description: "base64-encoded RFC 5545 calendar invite" },
-        signature: { type: "string" },
-      },
-    },
+    ...ROUTE_SCHEMAS["POST /reserve"],
   },
 };
 
