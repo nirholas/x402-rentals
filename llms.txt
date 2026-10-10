@@ -1,0 +1,28 @@
+# x402-rentals
+
+> Time-slot rental server for courts, rooms, and equipment: reserve and pay per block with x402
+
+x402-rentals is an open-source repository by nirholas, part of the three.ws ecosystem.
+
+## Docs
+
+- [README](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md): install, usage and reference
+- [Why x402 for this](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#why-x402-for-this)
+- [Quickstart](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#quickstart)
+- [API](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#api)
+- [The block model](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#the-block-model)
+- [Signed quotes](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#signed-quotes)
+- [How x402 works](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#how-x402-works)
+- [Real backend / configuration](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#real-backend-configuration)
+- [Human checkout](https://github.com/nirholas/x402-rentals/blob/HEAD/README.md#human-checkout)
+- [AGENTS.md](https://github.com/nirholas/x402-rentals/blob/HEAD/AGENTS.md): guidance for coding agents
+- [Full text for LLMs](https://github.com/nirholas/x402-rentals/blob/HEAD/llms-full.txt): the README inlined
+
+## Project
+
+- [Source](https://github.com/nirholas/x402-rentals)
+- [Issues](https://github.com/nirholas/x402-rentals/issues)
+- [Discussions](https://github.com/nirholas/x402-rentals/discussions)
+- [Homepage](https://nirholas.github.io/x402-rentals/)
+- [three.ws](https://three.ws): the platform this is part of
+- [All repositories by nirholas](https://github.com/nirholas/nirholas#readme)
