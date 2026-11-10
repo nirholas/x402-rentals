@@ -1,0 +1,19 @@
+{
+  "name": "x402-rentals",
+  "version": "0.1.0",
+  "description": "Time-slot rental server for courts, rooms and equipment: browse, quote, reserve and cancel paid over x402.",
+  "author": {
+    "name": "nirholas"
+  },
+  "repository": "https://github.com/nirholas/x402-rentals",
+  "homepage": "https://nirholas.github.io/x402-rentals/",
+  "license": "Apache-2.0",
+  "keywords": [
+    "x402",
+    "rentals",
+    "booking",
+    "reservations",
+    "usdc",
+    "ai-agents"
+  ]
+}

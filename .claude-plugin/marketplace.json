@@ -1,0 +1,23 @@
+{
+  "name": "x402-rentals",
+  "owner": {
+    "name": "nirholas"
+  },
+  "description": "Time-slot rental server for courts, rooms and equipment: browse, quote, reserve and cancel paid over x402.",
+  "plugins": [
+    {
+      "name": "x402-rentals",
+      "source": "./plugins/x402-rentals",
+      "description": "Time-slot rental server for courts, rooms and equipment: browse, quote, reserve and cancel paid over x402.",
+      "category": "automation",
+      "tags": [
+        "x402",
+        "rentals",
+        "booking",
+        "reservations",
+        "usdc",
+        "ai-agents"
+      ]
+    }
+  ]
+}
